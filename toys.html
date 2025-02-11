@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toys Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+
+        header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+        }
+
+        nav {
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .auth-form {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 300px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input {
+            display: block;
+            width: 90%;
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        #toysContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .toy {
+            border: 1px solid #ccc;
+            margin: 10px;
+            padding: 10px;
+            width: 200px;
+            background-color: #fff;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .deleteToy {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Toys Store</h1>
+        <nav>
+            <button id="loginBtn">Login</button>
+            <button id="registerBtn">Register</button>
+            <button id="logoutBtn" style="display: none;">Logout</button>
+            <button id="loadToys">Load Toys</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="authSection">
+            <div id="loginForm" class="auth-form" style="display: none;">
+                <h2>Login</h2>
+                <input type="email" id="loginEmail" placeholder="Email">
+                <input type="password" id="loginPassword" placeholder="Password">
+                <button id="submitLogin">Login</button>
+            </div>
+
+            <div id="registerForm" class="auth-form" style="display: none;">
+                <h2>Register</h2>
+                <input type="text" id="registerName" placeholder="Name">
+                <input type="email" id="registerEmail" placeholder="Email">
+                <input type="password" id="registerPassword" placeholder="Password">
+                <button id="submitRegister">Register</button>
+            </div>
+        </section>
+
+        <section id="toysContainer"></section>
+
+        <section id="addToyForm" style="display: none;">
+            <h2>Add a New Toy</h2>
+            <input type="text" id="toyName" placeholder="Toy Name">
+            <input type="text" id="toyCategory" placeholder="Category">
+            <input type="number" id="toyPrice" placeholder="Price">
+            <button id="addToy">Add Toy</button>
+        </section>
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:5000/api";
+let token = localStorage.getItem("token");
+
+// زر تسجيل الدخول
+document.getElementById("loginBtn").addEventListener("click", () => {
+    document.getElementById("loginForm").style.display = "block";
+    document.getElementById("registerForm").style.display = "none";
+});
+
+// زر التسجيل
+document.getElementById("registerBtn").addEventListener("click", () => {
+    document.getElementById("registerForm").style.display = "block";
+    document.getElementById("loginForm").style.display = "none";
+});
+
+// زر تسجيل الخروج
+document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("token");
+    alert("Logged out successfully!");
+    location.reload();
+});
+
+// تسجيل الدخول
+document.getElementById("submitLogin").addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value;
+    const password = document.getElementById("loginPassword").value;
+
+    try {
+        const response = await fetch(`${API_URL}/users/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+        if (data.token) {
+            localStorage.setItem("token", data.token);
+            alert("Login successful!");
+            location.reload();
+        } else {
+            alert("Login failed. Check your credentials.");
+        }
+    } catch (error) {
+        console.error("Login error:", error);
+        alert("An error occurred while logging in.");
+    }
+});
+
+// تسجيل حساب جديد
+document.getElementById("submitRegister").addEventListener("click", async () => {
+    const name = document.getElementById("registerName").value;
+    const email = document.getElementById("registerEmail").value;
+    const password = document.getElementById("registerPassword").value;
+
+    try {
+        const response = await fetch(`${API_URL}/users/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password })
+        });
+
+        const data = await response.json();
+        if (data.token) {
+            localStorage.setItem("token", data.token);
+            alert("Registration successful!");
+            location.reload();
+        } else {
+            alert("Registration failed.");
+        }
+    } catch (error) {
+        console.error("Registration error:", error);
+        alert("An error occurred while registering.");
+    }
+});
+
+// تحميل قائمة الألعاب
+document.getElementById("loadToys").addEventListener("click", async () => {
+    try {
+        const response = await fetch(`${API_URL}/toys`);
+        const data = await response.json();
+
+        const toysContainer = document.getElementById("toysContainer");
+        toysContainer.innerHTML = "";
+
+        data.toys.forEach(toy => {
+            const toyElement = document.createElement("div");
+            toyElement.classList.add("toy");
+            toyElement.innerHTML = `
+                <h3>${toy.name}</h3>
+                <p>Category: ${toy.category}</p>
+                <p>Price: $${toy.price}</p>
+                <button class="deleteToy" data-id="${toy._id}">Delete</button>
+            `;
+            toysContainer.appendChild(toyElement);
+        });
+
+        document.querySelectorAll(".deleteToy").forEach(button => {
+            button.addEventListener("click", async () => {
+                const toyId = button.getAttribute("data-id");
+                await fetch(`${API_URL}/toys/${toyId}`, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                alert("Toy deleted!");
+                location.reload();
+            });
+        });
+
+    } catch (error) {
+        console.error("Error loading toys:", error);
+        alert("An error occurred while fetching toys.");
+    }
+});
+
+// إضافة لعبة جديدة
+document.getElementById("addToy").addEventListener("click", async () => {
+    const name = document.getElementById("toyName").value;
+    const category = document.getElementById("toyCategory").value;
+    const price = document.getElementById("toyPrice").value;
+
+    try {
+        const response = await fetch(`${API_URL}/toys`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ name, category, price })
+        });
+
+        if (response.ok) {
+            alert("Toy added successfully!");
+            location.reload();
+        } else {
+            alert("Error adding toy.");
+        }
+    } catch (error) {
+        console.error("Error adding toy:", error);
+        alert("An error occurred while adding the toy.");
+    }
+});
+
+// التأكد من إظهار زر تسجيل الخروج إذا كان المستخدم مسجلاً
+if (token) {
+    document.getElementById("logoutBtn").style.display = "block";
+    document.getElementById("addToyForm").style.display = "block";
+}
+    </script>
+</body>
+</html>
